@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { useTranslation } from 'react-i18next'
 import io from 'socket.io-client'
+import { GoogleLogin } from '@react-oauth/google'
 import './i18n'
 import './App.css'
 
@@ -68,6 +69,21 @@ function App() {
       setIsRegisterMode(false)
     } catch (err) {
       setMessage(err.response?.data?.message || 'Gagal Mendaftar')
+    }
+  }
+
+  // Handler Google OAuth Login / Register
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      const res = await axios.post('http://127.0.0.1:5000/google-login', {
+        credential: credentialResponse.credential,
+        role: role
+      })
+      localStorage.setItem('token', res.data.token)
+      setUser(res.data.user)
+      setMessage('Login Google Berhasil!')
+    } catch (err) {
+      setMessage(err.response?.data?.message || 'Gagal Login via Google')
     }
   }
 
@@ -151,6 +167,15 @@ function App() {
                 <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} required />
                 <button type="submit" className="btn-primary">Masuk</button>
               </form>
+              
+              <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <p style={{ fontSize: '13px', color: '#666', marginBottom: '8px' }}>Atau masuk dengan:</p>
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => setMessage('Google Login Gagal')}
+                />
+              </div>
+
               <p style={{ marginTop: '15px', fontSize: '14px' }}>
                 Belum punya akun? <span style={{ color: '#007bff', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => setIsRegisterMode(true)}>Daftar Sekarang</span>
               </p>
@@ -167,6 +192,15 @@ function App() {
                 </select>
                 <button type="submit" className="btn-success">Daftar Akun</button>
               </form>
+
+              <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <p style={{ fontSize: '13px', color: '#666', marginBottom: '8px' }}>Atau daftar cepat dengan:</p>
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => setMessage('Google Register Gagal')}
+                />
+              </div>
+
               <p style={{ marginTop: '15px', fontSize: '14px' }}>
                 Sudah punya akun? <span style={{ color: '#007bff', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => setIsRegisterMode(false)}>Login di sini</span>
               </p>

@@ -4,15 +4,16 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_socketio import SocketIO, emit, join_room
 from werkzeug.security import generate_password_hash, check_password_hash
-
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Konfigurasi Database PostgreSQL 18 & JWT
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password_anda@localhost:5432/ecommerce_db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Ridwan123@127.0.0.1:5432/ecommerce_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = 'rahasia-super-ecom-2026'
-
+GOOGLE_CLIENT_ID = "644147848430-pv2j9s9v77b8fnh0b21rglpfsqj4snru.apps.googleusercontent.com"
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -155,5 +156,38 @@ def handle_message(data):
     db.session.commit()
     emit('receive_message', {'sender_id': data['sender_id'], 'content': data['content']}, room=room)
 
+
+@app.route('/google-login', methods=['POST'])
+def google_login():
+    data = request.json
+    token = data.get('credential')
+    selected_role = data.get('role', 'buyer')
+
+    try:
+        # Verifikasi token dari frontend dengan Google
+        id_info = id_token.verify_oauth2_token(token, google_requests.Request(), GOOGLE_CLIENT_ID)
+        email = id_info['email']
+
+        # Cek apakah user sudah ada di database
+        user = User.query.filter_by(username=email).first()
+
+        if not user:
+            # Jika belum ada, buat akun baru secara otomatis
+            random_pw = generate_password_hash('google_oauth_default_password')
+            user = User(username=email, password=random_pw, role=selected_role)
+            db.session.add(user)
+            db.session.commit()
+
+        # Buatkan token akses JWT
+        access_token = create_access_token(identity={'id': user.id, 'username': user.username, 'role': user.role})
+        return jsonify({
+            'token': access_token,
+            'user': {'id': user.id, 'username': user.username, 'role': user.role}
+        }), 200
+
+    except Exception as e:
+        print("Google Auth Error:", str(e))
+        return jsonify({'message': f'Gagal Login via Google: {str(e)}'}), 400
+    
 if __name__ == '__main__':
     socketio.run(app, debug=True, port=5000)
