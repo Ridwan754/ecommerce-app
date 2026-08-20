@@ -9,12 +9,29 @@ import AdminDashboard from './roles/admin/AdminDashboard';
 import { ShoppingBag, ShoppingCart, LogOut, UserCheck } from 'lucide-react';
 
 export default function App() {
-  // Role State: 'buyer' | 'seller' | 'admin'
   const [currentRole, setCurrentRole] = useState('buyer');
-
   const [products, setProducts] = useState(initialProducts);
   const [cartItems, setCartItems] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+
+  // LOGIKA LOGOUT
+  const handleLogout = () => {
+    // 1. Konfirmasi logout ke pengguna
+    const confirmLogout = window.confirm("Apakah Anda yakin ingin keluar?");
+    
+    if (confirmLogout) {
+      // 2. Hapus token/session dari storage jika ada
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+
+      // 3. Reset state aplikasi
+      setCartItems([]);
+      setCurrentRole('buyer');
+
+      // 4. Beri pemberitahuan
+      alert("Anda telah berhasil keluar.");
+    }
+  };
 
   const handleAddProduct = (newProduct) => {
     setProducts([newProduct, ...products]);
@@ -23,7 +40,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
       
-      {/* NAVBAR & ROLE SWITCHER */}
+      {/* NAVBAR */}
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           
@@ -36,7 +53,7 @@ export default function App() {
             </span>
           </div>
 
-          {/* Switcher Role untuk Pengujian */}
+          {/* Role Switcher */}
           <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
             <span className="text-slate-500 font-semibold px-2 flex items-center gap-1">
               <UserCheck className="w-3.5 h-3.5" /> Mode Akses:
@@ -72,7 +89,12 @@ export default function App() {
                 )}
               </button>
             )}
-            <button className="flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-xl border border-red-200">
+
+            {/* TOMBOL LOGOUT DENGAN AKSI onClick */}
+            <button 
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-xl border border-red-200 transition active:scale-95 cursor-pointer"
+            >
               <LogOut className="w-3.5 h-3.5" />
               <span>Logout</span>
             </button>
