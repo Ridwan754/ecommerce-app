@@ -1,304 +1,295 @@
-import { useState, useEffect } from 'react'
-import axios from 'axios'
-import { useTranslation } from 'react-i18next'
-import io from 'socket.io-client'
-import { GoogleLogin } from '@react-oauth/google'
-import './i18n'
-import './App.css'
+import React, { useState, useEffect } from 'react';
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
-const socket = io('http://127.0.0.1:5000')
+const GOOGLE_CLIENT_ID = "644147848430-pv2j9s9v77b8fnh0b21rglpfsqj4snru.apps.googleusercontent.com";
+const API_URL = "http://localhost:5000";
 
-function App() {
-  const { t, i18n } = useTranslation()
-  const [user, setUser] = useState(null)
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [role, setRole] = useState('buyer')
-  const [message, setMessage] = useState('')
-  const [products, setProducts] = useState([])
-  const [isRegisterMode, setIsRegisterMode] = useState(false)
-  
-  // State Seller Form
-  const [pName, setPName] = useState('')
-  const [pPrice, setPPrice] = useState('')
-  const [pStock, setPStock] = useState('1')
+function AppContent() {
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('user');
+    return saved ? JSON.parse(saved) : null;
+  });
 
-  // State Admin Form
-  const [newUsername, setNewUsername] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [newRole, setNewRole] = useState('seller')
+  const [products, setProducts] = useState([]);
+  const [usersList, setUsersList] = useState([]); // Untuk Admin mengelola User
+  const [cart, setCart] = useState([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // State Chat
-  const [chatRoom, setChatRoom] = useState('')
-  const [chatMsg, setChatMsg] = useState('')
-  const [chatLogs, setChatLogs] = useState([])
+  // Form State Tambah Produk (Khusus Seller)
+  const [name, setName] = useState('');
+  const [price, setPrice] = useState('');
+  const [stock, setStock] = useState('10');
+  const [image, setImage] = useState(null);
 
   useEffect(() => {
-    fetchProducts()
-    socket.on('receive_message', (data) => {
-      setChatLogs(prev => [...prev, data])
-    })
-  }, [])
+    fetchProducts();
+    if (user) {
+      if (user.role === 'buyer') fetchCart();
+      if (user.role === 'admin') fetchUsers();
+    }
+  }, [user]);
 
   const fetchProducts = async () => {
     try {
-      const res = await axios.get('http://127.0.0.1:5000/products')
-      setProducts(res.data)
+      const res = await fetch(`${API_URL}/products`);
+      if (res.ok) setProducts(await res.json());
     } catch (err) {
-      console.error(err)
+      console.error(err);
     }
-  }
+  };
 
-  const handleLogin = async (e) => {
-    e.preventDefault()
+  const fetchUsers = async () => {
     try {
-      const res = await axios.post('http://127.0.0.1:5000/login', { username, password })
-      localStorage.setItem('token', res.data.token)
-      setUser(res.data.user)
-      setMessage('Login Berhasil!')
+      const res = await fetch(`${API_URL}/admin/users`);
+      if (res.ok) setUsersList(await res.json());
     } catch (err) {
-      setMessage(err.response?.data?.message || 'Gagal Login')
+      console.error(err);
     }
-  }
+  };
 
-  const handleRegister = async (e) => {
-    e.preventDefault()
+  const fetchCart = async () => {
+    if (!user) return;
     try {
-      const res = await axios.post('http://127.0.0.1:5000/register', { username, password, role })
-      setMessage(res.data.message)
-      setIsRegisterMode(false)
+      const res = await fetch(`${API_URL}/cart?user_id=${user.id}`);
+      if (res.ok) setCart(await res.json());
     } catch (err) {
-      setMessage(err.response?.data?.message || 'Gagal Mendaftar')
+      console.error(err);
     }
-  }
+  };
 
-  // Handler Google OAuth Login / Register
-  const handleGoogleSuccess = async (credentialResponse) => {
+  const handleGoogleSuccess = async (cred) => {
     try {
-      const res = await axios.post('http://127.0.0.1:5000/google-login', {
-        credential: credentialResponse.credential,
-        role: role
-      })
-      localStorage.setItem('token', res.data.token)
-      setUser(res.data.user)
-      setMessage('Login Google Berhasil!')
+      const res = await fetch(`${API_URL}/google-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: cred.credential }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUser(data);
+        localStorage.setItem('user', JSON.stringify(data));
+      }
     } catch (err) {
-      setMessage(err.response?.data?.message || 'Gagal Login via Google')
+      alert("Login Gagal");
     }
-  }
+  };
 
-  const handleAdminCreate = async (e) => {
-    e.preventDefault()
+  // Admin Ubah Role User (Buyer -> Seller / Admin)
+  const handleChangeRole = async (userId, newRole) => {
     try {
-      const token = localStorage.getItem('token')
-      const res = await axios.post('http://127.0.0.1:5000/admin/create-user', 
-        { username: newUsername, password: newPassword, role: newRole },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      setMessage(res.data.message)
+      const res = await fetch(`${API_URL}/admin/change-role`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, role: newRole }),
+      });
+      if (res.ok) {
+        alert("Role user berhasil diperbarui!");
+        fetchUsers();
+      }
     } catch (err) {
-      setMessage(err.response?.data?.message || 'Gagal buat user')
+      alert("Gagal mengubah role");
     }
-  }
+  };
 
   const handleAddProduct = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
+    if (!user || user.role !== 'seller') return alert("Hanya Seller yang boleh menambah barang!");
+
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('price', price);
+    formData.append('stock', stock);
+    formData.append('user_id', user.id);
+    if (image) formData.append('image', image);
+
     try {
-      const token = localStorage.getItem('token')
-      await axios.post('http://127.0.0.1:5000/products', 
-        { name: pName, price: pPrice, stock: pStock },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      setMessage('Produk berhasil ditambahkan!')
-      fetchProducts()
-    } catch (err) {
-      setMessage(err.response?.data?.message || 'Gagal')
-    }
-  }
+      const res = await fetch(`${API_URL}/products`, {
+        method: 'POST',
+        body: formData,
+      });
 
-  const handleCheckout = async (productId, method) => {
+      if (res.ok) {
+        alert("Produk Berhasil Dijual!");
+        setName('');
+        setPrice('');
+        setImage(null);
+        e.target.reset();
+        fetchProducts();
+      }
+    } catch (err) {
+      alert("Gagal menambahkan produk");
+    }
+  };
+
+  const addToCart = async (productId) => {
+    if (!user) return alert("Silakan login terlebih dahulu!");
     try {
-      const token = localStorage.getItem('token')
-      const res = await axios.post('http://127.0.0.1:5000/checkout',
-        { product_id: productId, payment_method: method },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      setMessage(res.data.message)
-      fetchProducts()
+      const res = await fetch(`${API_URL}/cart`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id, product_id: productId }),
+      });
+      if (res.ok) {
+        fetchCart();
+        setIsCartOpen(true);
+      }
     } catch (err) {
-      setMessage(err.response?.data?.message || 'Checkout gagal')
+      console.error(err);
     }
-  }
+  };
 
-  const joinChat = (sellerId) => {
-    const room = `chat_${user.id}_${sellerId}`
-    setChatRoom(room)
-    socket.emit('join', { room })
-  }
-
-  const sendChat = () => {
-    if (!chatMsg) return
-    socket.emit('send_message', { room: chatRoom, sender_id: user.id, content: chatMsg })
-    setChatMsg('')
-  }
+  const cartTotal = cart.reduce((acc, curr) => acc + curr.subtotal, 0);
 
   return (
-    <div className="container">
+    <div className="min-h-screen bg-slate-50 text-slate-800">
       {/* NAVBAR */}
-      <div className="navbar">
-        <h2>🛒 {t('title')}</h2>
-        <div>
-          <button className={`lang-btn ${i18n.language === 'id' ? 'active' : ''}`} onClick={() => i18n.changeLanguage('id')}>ID</button>
-          <button className={`lang-btn ${i18n.language === 'en' ? 'active' : ''}`} onClick={() => i18n.changeLanguage('en')}>EN</button>
-        </div>
-      </div>
-
-      {/* ALERT BANNER */}
-      {message && <div className="alert-banner">🔔 {message}</div>}
-
-      {/* FORM AUTHENTICATION CARD */}
-      {!user ? (
-        <div className="card">
-          {!isRegisterMode ? (
-            <div>
-              <h3>Masuk ke Akun Anda</h3>
-              <form onSubmit={handleLogin} className="form-group">
-                <input type="text" placeholder="Username" value={username} onChange={e=>setUsername(e.target.value)} required />
-                <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} required />
-                <button type="submit" className="btn-primary">Masuk</button>
-              </form>
-              
-              <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <p style={{ fontSize: '13px', color: '#666', marginBottom: '8px' }}>Atau masuk dengan:</p>
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={() => setMessage('Google Login Gagal')}
-                />
-              </div>
-
-              <p style={{ marginTop: '15px', fontSize: '14px' }}>
-                Belum punya akun? <span style={{ color: '#007bff', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => setIsRegisterMode(true)}>Daftar Sekarang</span>
-              </p>
-            </div>
-          ) : (
-            <div>
-              <h3>Daftar Akun Baru</h3>
-              <form onSubmit={handleRegister} className="form-group">
-                <input type="text" placeholder="Username Baru" onChange={e=>setUsername(e.target.value)} required />
-                <input type="password" placeholder="Password Baru" onChange={e=>setPassword(e.target.value)} required />
-                <select value={role} onChange={e=>setRole(e.target.value)}>
-                  <option value="buyer">Buyer (Pembeli)</option>
-                  <option value="seller">Seller (Penjual)</option>
-                </select>
-                <button type="submit" className="btn-success">Daftar Akun</button>
-              </form>
-
-              <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <p style={{ fontSize: '13px', color: '#666', marginBottom: '8px' }}>Atau daftar cepat dengan:</p>
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={() => setMessage('Google Register Gagal')}
-                />
-              </div>
-
-              <p style={{ marginTop: '15px', fontSize: '14px' }}>
-                Sudah punya akun? <span style={{ color: '#007bff', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => setIsRegisterMode(false)}>Login di sini</span>
-              </p>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            Selamat datang, <strong>{user.username}</strong> <span style={{ background: '#e9ecef', padding: '3px 8px', borderRadius: '4px', fontSize: '12px' }}>{user.role.toUpperCase()}</span>
+      <nav className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 font-extrabold text-2xl text-blue-600">
+            <span>🛍️</span>
+            <span>Storefront</span>
           </div>
-          <button onClick={() => setUser(null)} className="btn-outline">Logout</button>
-        </div>
-      )}
 
-      {/* ROLE ADMIN PANEL */}
-      {user && user.role === 'admin' && (
-        <div className="card">
-          <h3>👑 {t('admin_panel')}</h3>
-          <form onSubmit={handleAdminCreate} className="form-group" style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-            <input type="text" placeholder="Username" onChange={e=>setNewUsername(e.target.value)} required />
-            <input type="password" placeholder="Password" onChange={e=>setNewPassword(e.target.value)} required />
-            <select onChange={e=>setNewRole(e.target.value)}>
-              <option value="seller">Seller</option>
-              <option value="buyer">Buyer</option>
-            </select>
-            <button type="submit" className="btn-primary">Buat Akun</button>
-          </form>
-        </div>
-      )}
+          <div className="flex items-center gap-4">
+            {user?.role === 'buyer' && (
+              <button 
+                onClick={() => setIsCartOpen(true)}
+                className="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full font-semibold hover:bg-blue-100 transition"
+              >
+                <span>🛒 Keranjang</span>
+                <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{cart.length}</span>
+              </button>
+            )}
 
-      {/* ROLE SELLER PANEL */}
-      {user && user.role === 'seller' && (
-        <div className="card">
-          <h3>📦 {t('add_product')}</h3>
-          <form onSubmit={handleAddProduct} className="form-group" style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-            <input type="text" placeholder="Nama Barang" onChange={e=>setPName(e.target.value)} required />
-            <input type="number" placeholder="Harga (Rp)" onChange={e=>setPPrice(e.target.value)} required />
-            <input type="number" placeholder="Stok" value={pStock} onChange={e=>setPStock(e.target.value)} required />
-            <button type="submit" className="btn-success">Rilis Produk</button>
-          </form>
+            {user ? (
+              <div className="flex items-center gap-3">
+                <span className="font-semibold text-sm">
+                  👋 {user.username} 
+                  <span className="ml-2 text-xs font-bold uppercase px-2 py-0.5 rounded bg-slate-200 text-slate-700">
+                    {user.role}
+                  </span>
+                </span>
+                <button 
+                  onClick={() => { localStorage.clear(); setUser(null); }}
+                  className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg text-xs font-semibold"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <GoogleLogin onSuccess={handleGoogleSuccess} shape="pill" size="medium" />
+            )}
+          </div>
         </div>
-      )}
+      </nav>
 
-      {/* KATALOG PRODUK */}
-      <div className="card">
-        <h3>🛍️ Katalog Produk</h3>
-        <div className="product-grid">
-          {products.length === 0 ? <p style={{ color: '#999' }}>Belum ada produk yang dijual.</p> : (
-            products.map(p => (
-              <div key={p.id} className="product-card">
+      {/* MAIN CONTAINER */}
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        
+        {/* PANEL ADMIN: KELOLA USER & ROLE */}
+        {user?.role === 'admin' && (
+          <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-10">
+            <h3 className="text-lg font-bold text-slate-800 mb-4">👑 Dashboard Admin - Kelola User</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-100 text-slate-600 uppercase text-xs">
+                  <tr>
+                    <th className="p-3">Username</th>
+                    <th className="p-3">Email</th>
+                    <th className="p-3">Role Saat Ini</th>
+                    <th className="p-3">Aksi Ubah Role</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {usersList.map((u) => (
+                    <tr key={u.id}>
+                      <td className="p-3 font-medium">{u.username}</td>
+                      <td className="p-3 text-slate-500">{u.email}</td>
+                      <td className="p-3 font-bold uppercase">{u.role}</td>
+                      <td className="p-3 space-x-2">
+                        <button onClick={() => handleChangeRole(u.id, 'seller')} className="bg-emerald-500 text-white px-3 py-1 rounded text-xs font-semibold">Jadikan Seller</button>
+                        <button onClick={() => handleChangeRole(u.id, 'buyer')} className="bg-slate-500 text-white px-3 py-1 rounded text-xs font-semibold">Jadikan Buyer</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {/* PANEL SELLER: TAMBAH PRODUK JUALAN */}
+        {user?.role === 'seller' && (
+          <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-10">
+            <h3 className="text-lg font-bold text-slate-800 mb-4">🏪 Dashboard Seller - Tambah Produk Jualan</h3>
+            <form onSubmit={handleAddProduct} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Nama Produk</label>
+                <input type="text" value={name} onChange={e => setName(e.target.value)} required className="w-full p-2.5 border rounded-lg text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Harga (Rp)</label>
+                <input type="number" value={price} onChange={e => setPrice(e.target.value)} required className="w-full p-2.5 border rounded-lg text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Stok Awal</label>
+                <input type="number" value={stock} onChange={e => setStock(e.target.value)} required className="w-full p-2.5 border rounded-lg text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Foto Produk</label>
+                <input type="file" accept="image/*" onChange={e => setImage(e.target.files[0])} className="w-full text-xs text-slate-500" />
+              </div>
+              <button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-lg text-sm">
+                Publish Produk
+              </button>
+            </form>
+          </section>
+        )}
+
+        {/* KATALOG PRODUK (Dapat dilihat semua orang) */}
+        <section>
+          <h2 className="text-xl font-bold text-slate-900 mb-6">🔥 Katalog Produk Terpopuler</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {products.map(p => (
+              <div key={p.id} className="bg-white rounded-xl overflow-hidden shadow-sm border border-slate-200 flex flex-col justify-between">
                 <div>
-                  <div className="product-title">{p.name}</div>
-                  <div className="product-price">Rp {p.price.toLocaleString()}</div>
-                  <div className="product-stock">{t('stock')}: <strong>{p.stock}</strong></div>
+                  <div className="w-full h-44 bg-slate-100">
+                    <img src={p.image_url || 'https://via.placeholder.com/300'} alt={p.name} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="p-4">
+                    <h4 className="font-bold text-slate-800 text-base mb-2">{p.name}</h4>
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="font-extrabold text-emerald-600 text-lg">Rp {Number(p.price).toLocaleString('id-ID')}</span>
+                      <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">Stok: {p.stock}</span>
+                    </div>
+                  </div>
                 </div>
 
-                {user && user.role === 'buyer' && (
-                  <div>
-                    {p.stock > 0 ? (
-                      <div className="payment-buttons">
-                        <button className="btn-pay" onClick={()=>handleCheckout(p.id, 'GATEWAY')}>💳 Payment Gateway</button>
-                        <button className="btn-pay" onClick={()=>handleCheckout(p.id, 'COD')}>🚚 Bayar COD</button>
-                        <button className="btn-pay" onClick={()=>handleCheckout(p.id, 'MANUAL_TF')}>🏦 Transfer Direct</button>
-                      </div>
-                    ) : (
-                      <div style={{ color: '#dc3545', fontWeight: 'bold', fontSize: '13px', margin: '10px 0' }}>{t('out_of_stock')}</div>
-                    )}
-                    <button onClick={()=>joinChat(p.seller_id)} style={{ width: '100%', marginTop: '8px', padding: '6px', background: '#f0f0f0', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>
-                      💬 {t('chat')}
+                {/* Tombol Keranjang Hanya Muncul untuk Buyer */}
+                {(!user || user.role === 'buyer') && (
+                  <div className="p-4 pt-0">
+                    <button 
+                      onClick={() => addToCart(p.id)}
+                      disabled={p.stock < 1}
+                      className={`w-full py-2.5 rounded-lg font-bold ${p.stock < 1 ? 'bg-slate-200 text-slate-400' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                    >
+                      {p.stock < 1 ? 'Stok Habis' : '+ Keranjang'}
                     </button>
                   </div>
                 )}
               </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* REALTIME CHAT WIDGET */}
-      {chatRoom && (
-        <div className="chat-box">
-          <div className="chat-header">💬 Live Chat Seller</div>
-          <div className="chat-messages">
-            {chatLogs.map((c, i) => (
-              <div key={i} style={{ marginBottom: '8px', fontSize: '13px' }}>
-                <strong>User {c.sender_id}:</strong> {c.content}
-              </div>
             ))}
           </div>
-          <div className="chat-input">
-            <input type="text" placeholder="Tulis pesan..." value={chatMsg} onChange={e=>setChatMsg(e.target.value)} />
-            <button onClick={sendChat}>Kirim</button>
-          </div>
-        </div>
-      )}
+        </section>
+      </main>
     </div>
-  )
+  );
 }
 
-export default App
+export default function App() {
+  return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <AppContent />
+    </GoogleOAuthProvider>
+  );
+}
