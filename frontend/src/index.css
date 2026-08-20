@@ -1,5 +1,9 @@
 @import "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css";
 
+html {
+  overflow-y: scroll;
+}
+
 :root {
   --text: #6b6375;
   --text-h: #08060d;
