@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Package, DollarSign, ShoppingBag, Store, Truck, CheckCircle2, Clock } from 'lucide-react';
+import { Plus, Package, DollarSign, ShoppingBag, Store, Truck, MessageSquare } from 'lucide-react';
 import LogoutButton from '../../components/LogoutButton';
+import ChatBox from '../../components/ChatBox';
 
 export default function SellerDashboard({ products = [], orders = [], onAddProduct }) {
   const [name, setName] = useState('');
@@ -8,9 +9,10 @@ export default function SellerDashboard({ products = [], orders = [], onAddProdu
   const [stock, setStock] = useState(10);
   const [category, setCategory] = useState('sepatu');
   const [imageUrl, setImageUrl] = useState('');
-
-  // Tab State untuk Navigasi Internal Seller Centre
   const [activeTab, setActiveTab] = useState('products');
+
+  // State Fitur Chat Seller
+  const [isSellerChatOpen, setIsSellerChatOpen] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -41,7 +43,7 @@ export default function SellerDashboard({ products = [], orders = [], onAddProdu
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 font-sans -m-6 p-6">
+    <div className="min-h-screen bg-slate-100 font-sans -m-6 p-6 relative">
       
       {/* NAVBAR SELLER CENTRE */}
       <header className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 text-white p-4 rounded-2xl shadow-lg mb-6 flex justify-between items-center">
@@ -50,7 +52,7 @@ export default function SellerDashboard({ products = [], orders = [], onAddProdu
             <Store className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-black tracking-wide">Sopi'i<span className="text-amber-200">SellerCentre</span></h1>
+            <h1 className="text-lg font-black tracking-wide">Shopee<span className="text-amber-200">SellerCentre</span></h1>
             <p className="text-[11px] opacity-90">Kelola toko, inventaris barang, dan pesanan pelanggan</p>
           </div>
         </div>
@@ -242,6 +244,24 @@ export default function SellerDashboard({ products = [], orders = [], onAddProdu
           )}
         </div>
       )}
+
+      {/* FLOATING BUTTON CHAT UNTUK SELLER */}
+      <button
+        type="button"
+        onClick={() => setIsSellerChatOpen(true)}
+        className="fixed bottom-6 right-6 bg-slate-900 text-white p-3.5 rounded-full shadow-2xl hover:bg-slate-800 transition flex items-center gap-2 z-40 border-2 border-orange-500 cursor-pointer"
+      >
+        <MessageSquare className="w-5 h-5 text-orange-400" />
+        <span className="text-xs font-bold hidden sm:inline">Chat Pelanggan</span>
+      </button>
+
+      {/* WIDGET CHAT SELLER */}
+      <ChatBox
+        isOpen={isSellerChatOpen}
+        onClose={() => setIsSellerChatOpen(false)}
+        currentUserRole="seller"
+        targetName="Budi Santoso (Pembeli)"
+      />
 
     </div>
   );

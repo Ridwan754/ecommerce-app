@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Search, ShoppingCart, Star, Zap } from 'lucide-react';
+import { ShoppingBag, Search, ShoppingCart, Star, Zap, MessageSquare } from 'lucide-react';
 import LogoutButton from '../../components/LogoutButton';
 import CartModal from './CartModal';
 import CheckoutPage from '../../pages/CheckoutPage';
+import ChatBox from '../../components/ChatBox';
 
 export default function BuyerDashboard({ 
   products = [], 
@@ -13,11 +14,12 @@ export default function BuyerDashboard({
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('semua');
-  
-  // State Navigasi Antar Tampilan
-  const [currentView, setCurrentView] = useState('katalog'); // 'katalog' | 'checkout'
+  const [currentView, setCurrentView] = useState('katalog');
 
-  // Filter Produk Berdasarkan Pencarian & Kategori
+  // State Fitur Chat
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatTarget, setChatTarget] = useState('Toko Official Seller');
+
   const filteredProducts = (products || []).filter((item) => {
     const matchesSearch = item.name?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'semua' || item.category === selectedCategory;
@@ -28,25 +30,28 @@ export default function BuyerDashboard({
     setCartItems([...cartItems, product]);
   };
 
-  // RENDER HALAMAN CHECKOUT JIKA IN MODE CHECKOUT
+  const handleOpenChat = (shopName) => {
+    setChatTarget(shopName || 'Penjual Storefront');
+    setIsChatOpen(true);
+  };
+
   if (currentView === 'checkout') {
     return (
       <CheckoutPage 
         cartItems={cartItems}
         onBackToShop={() => setCurrentView('katalog')}
         onOrderSuccess={() => {
-          setCartItems([]); // Clear keranjang saat order selesai
-          setCurrentView('katalog'); // Kembali ke halaman utama
+          setCartItems([]);
+          setCurrentView('katalog');
         }}
       />
     );
   }
 
-  // RENDER TAMPILAN KATALOG UTAMA
   return (
-    <div className="min-h-screen bg-[#f5f5f5] font-sans -m-6 pb-12">
+    <div className="min-h-screen bg-[#f5f5f5] font-sans -m-6 pb-12 relative">
       
-      {/* 1. NAVBAR SHOPEE */}
+      {/* NAVBAR */}
       <header className="bg-[#ee4d2d] text-white sticky top-0 z-30 shadow-md">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-6">
           
@@ -58,7 +63,7 @@ export default function BuyerDashboard({
               <ShoppingBag className="w-6 h-6" />
             </div>
             <span className="text-2xl font-extrabold tracking-tight">
-              Sopi'i<span className="font-light text-orange-200"></span>
+              Shopee<span className="font-light text-orange-200">Modern</span>
             </span>
           </div>
 
@@ -98,7 +103,7 @@ export default function BuyerDashboard({
         </div>
       </header>
 
-      {/* 2. MAIN CONTENT */}
+      {/* MAIN CONTENT */}
       <main className="max-w-6xl mx-auto px-4 mt-4 space-y-4">
         
         {/* Banner Promo */}
@@ -166,9 +171,17 @@ export default function BuyerDashboard({
                         <span className="text-[10px]">Rp</span>{Number(product.price).toLocaleString('id-ID')}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] text-slate-400 pt-0.5">
-                      <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                      <span>{product.rating || '4.8'}</span>
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                      <span className="flex items-center gap-0.5">
+                        <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                        {product.rating || '4.8'}
+                      </span>
+                      <button 
+                        onClick={() => handleOpenChat(product.shopName)}
+                        className="text-[#ee4d2d] hover:underline font-bold"
+                      >
+                        Chat Toko
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -188,13 +201,31 @@ export default function BuyerDashboard({
 
       </main>
 
-      {/* MODAL KERANJANG DISAMBUNGKAN KE NAVIGASI CHECKOUT */}
+      {/* FLOATING CHAT BUTTON UNTUK BUYER */}
+      <button
+        type="button"
+        onClick={() => handleOpenChat('Toko Sepatu Impian')}
+        className="fixed bottom-6 right-6 bg-[#ee4d2d] text-white p-3.5 rounded-full shadow-2xl hover:bg-[#d73211] transition flex items-center gap-2 z-40 border-2 border-white cursor-pointer"
+      >
+        <MessageSquare className="w-5 h-5" />
+        <span className="text-xs font-bold hidden sm:inline">Chat Penjual</span>
+      </button>
+
+      {/* MODAL KERANJANG */}
       <CartModal 
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
         cartItems={cartItems}
         setCartItems={setCartItems}
         onGoToCheckout={() => setCurrentView('checkout')}
+      />
+
+      {/* CHAT WIDGET */}
+      <ChatBox
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        currentUserRole="customer"
+        targetName={chatTarget}
       />
 
     </div>
