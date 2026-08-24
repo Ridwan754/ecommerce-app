@@ -1,13 +1,21 @@
 import React from 'react';
 import { LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/useLanguage';
 
 export default function LogoutButton({ className = "" }) {
   const { logout } = useAuth();
+  const { lang } = useLanguage();
+
+  const isEn = lang === 'en';
+  const label = isEn ? 'Logout' : 'Keluar';
+  const confirmMsg = isEn 
+    ? 'Log out from your current account?' 
+    : 'Keluar dari akun Anda saat ini?';
 
   const handleLogout = (e) => {
     e.preventDefault();
-    if (window.confirm("Keluar dari akun Anda saat ini?")) {
+    if (window.confirm(confirmMsg)) {
       logout();
     }
   };
@@ -16,10 +24,10 @@ export default function LogoutButton({ className = "" }) {
     <button
       type="button"
       onClick={handleLogout}
-      className={`flex items-center gap-1.5 text-xs font-bold text-orange-600 hover:bg-orange-50 border border-orange-200 px-3 py-1.5 rounded-xl transition cursor-pointer ${className}`}
+      className={`flex items-center gap-1.5 text-xs font-bold transition cursor-pointer ${className}`}
     >
       <LogOut className="w-3.5 h-3.5" />
-      <span>Keluar</span>
+      <span>{label}</span>
     </button>
   );
 }

@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   ShoppingBag, Search, Heart, ShoppingCart, LogOut, 
   Star, Tag, ChevronRight, Laptop, Shirt, Smartphone, Watch
 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
+export default function Navbar() {
+  const { lang, setLang, t } = useLanguage();
 export default function EcommerceStorefront() {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -55,6 +58,23 @@ export default function EcommerceStorefront() {
     }
   ];
 
+  return (
+    <nav className="p-4 bg-white shadow flex justify-between">
+      <input type="text" placeholder={t.searchPlaceholder} />
+
+      <div className="flex gap-4 items-center">
+        <button>{t.cart}</button>
+        <button>{t.logout}</button>
+
+        {/* Pemilih bahasa juga bisa dipasang di Navbar dalam aplikasi */}
+        <select value={lang} onChange={(e) => setLang(e.target.value)}>
+          <option value="id">ID</option>
+          <option value="en">EN</option>
+        </select>
+      </div>
+    </nav>
+  );
+}
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
       

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   MapPin, Truck, Tag, CreditCard, ShoppingBag, 
   Upload, ShieldCheck, CheckCircle2, ArrowLeft, Clock 
