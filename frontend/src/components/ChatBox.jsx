@@ -1,113 +1,88 @@
-import React, { useState } from 'react';
-import { Send, X, Store, User, Image, Paperclip } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Send, Store, User } from 'lucide-react';
 
-export default function ChatBox({ 
-  isOpen, 
-  onClose, 
-  currentUserRole = 'customer', // 'customer' | 'seller'
-  targetName = 'Toko Sepatu Impian' 
-}) {
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      sender: 'seller',
-      text: 'Halo! Ada yang bisa kami bantu mengenai produk ini?',
-      time: '14:00'
-    }
-  ]);
+export default function ChatBox({ isOpen, onClose, currentUserRole, currentUserId, targetSellerId, targetName }) {
+  const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
 
-  if (!isOpen) return null;
+  // Tentukan Kunci ID Toko untuk Percakapan Ini
+  const activeSellerId = currentUserRole === 'seller' ? currentUserId : targetSellerId;
+  const storageKey = `chat_messages_${activeSellerId}`;
 
-  const handleSendMessage = (e) => {
+  // Muat Pesan Sesuai Toko
+  useEffect(() => {
+    if (activeSellerId) {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        setMessages(JSON.parse(saved));
+      } else {
+        setMessages([
+          { id: 1, sender: 'seller', text: `Halo! Selamat datang di ${targetName || 'Toko Kami'}. Ada yang bisa kami bantu?` }
+        ]);
+      }
+    }
+  }, [activeSellerId, storageKey, targetName]);
+
+  const handleSend = (e) => {
     e.preventDefault();
     if (!inputText.trim()) return;
 
-    const newMessage = {
+    const newMsg = {
       id: Date.now(),
-      sender: currentUserRole === 'seller' ? 'seller' : 'buyer',
-      text: inputText,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      sender: currentUserRole, // 'buyer' atau 'seller'
+      text: inputText
     };
 
-    setMessages((prev) => [...prev, newMessage]);
+    const updated = [...messages, newMsg];
+    setMessages(updated);
+    localStorage.setItem(storageKey, JSON.stringify(updated));
     setInputText('');
-
-    // Balasan Otomatis Simulasi jika dikirim oleh Buyer
-    if (currentUserRole !== 'seller') {
-      setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: Date.now() + 1,
-            sender: 'seller',
-            text: 'Terima kasih atas pesannya! Stok barang ready ya kak, silakan diorder.',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          }
-        ]);
-      }, 1000);
-    }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed bottom-4 right-4 w-80 sm:w-96 bg-white rounded-t-2xl shadow-2xl border border-orange-200 z-50 flex flex-col h-[450px] overflow-hidden">
+    <div className="fixed bottom-6 right-6 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 flex flex-col overflow-hidden">
       
       {/* HEADER CHAT */}
-      <div className="bg-[#ee4d2d] text-white p-3.5 flex justify-between items-center shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="p-1.5 bg-white/20 rounded-full">
-            {currentUserRole === 'seller' ? <User className="w-4 h-4 text-white" /> : <Store className="w-4 h-4 text-white" />}
-          </div>
+      <div className="bg-slate-900 text-white p-3.5 flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          {currentUserRole === 'buyer' ? <Store className="w-4 h-4 text-orange-400" /> : <User className="w-4 h-4 text-orange-400" />}
           <div>
-            <h4 className="font-bold text-xs line-clamp-1">{targetName}</h4>
-            <p className="text-[10px] text-orange-100 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block"></span> Online
-            </p>
+            <p className="text-xs font-bold">{targetName || 'Toko'}</p>
+            <p className="text-[10px] text-emerald-400">● Online</p>
           </div>
         </div>
-
-        <button onClick={onClose} className="p-1 text-white/80 hover:text-white rounded-md hover:bg-white/10">
+        <button onClick={onClose} className="text-slate-400 hover:text-white p-1">
           <X className="w-4 h-4" />
         </button>
       </div>
 
-      {/* BODY CHAT (ISI PESAN) */}
-      <div className="flex-1 p-3 overflow-y-auto space-y-3 bg-[#f8f8f8]">
+      {/* RIWAYAT PESAN */}
+      <div className="p-3 h-64 overflow-y-auto space-y-2.5 bg-slate-50 text-xs">
         {messages.map((msg) => {
-          const isMyMessage = (currentUserRole === 'seller' && msg.sender === 'seller') ||
-                              (currentUserRole !== 'seller' && msg.sender === 'buyer');
-
+          const isMe = msg.sender === currentUserRole;
           return (
-            <div key={msg.id} className={`flex flex-col ${isMyMessage ? 'items-end' : 'items-start'}`}>
-              <div
-                className={`max-w-[80%] px-3 py-2 rounded-2xl text-xs shadow-sm ${
-                  isMyMessage
-                    ? 'bg-[#ee4d2d] text-white rounded-br-none'
-                    : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'
-                }`}
-              >
-                <p className="leading-relaxed">{msg.text}</p>
+            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[75%] p-2.5 rounded-xl ${isMe ? 'bg-orange-500 text-white rounded-br-none' : 'bg-white border text-slate-800 rounded-bl-none shadow-sm'}`}>
+                {msg.text}
               </div>
-              <span className="text-[9px] text-slate-400 mt-1 px-1">{msg.time}</span>
             </div>
           );
         })}
       </div>
 
-      {/* FOOTER CHAT (INPUT FORM) */}
-      <form onSubmit={handleSendMessage} className="p-2.5 bg-white border-t border-slate-200 flex items-center gap-2 shrink-0">
+      {/* INPUT BALAS PESAN */}
+      <form onSubmit={handleSend} className="p-2 border-t bg-white flex gap-2">
         <input
           type="text"
-          placeholder="Ketik pesan di sini..."
+          placeholder="Ketik pesan..."
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
-          className="flex-1 px-3 py-2 bg-slate-100 rounded-full text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#ee4d2d]"
+          className="flex-1 p-2 bg-slate-100 rounded-xl text-xs focus:outline-orange-500"
         />
-        <button
-          type="submit"
-          className="p-2 bg-[#ee4d2d] text-white rounded-full hover:bg-[#d73211] transition shadow"
-        >
-          <Send className="w-3.5 h-3.5" />
+        <button type="submit" className="p-2 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition">
+          <Send className="w-4 h-4" />
         </button>
       </form>
 

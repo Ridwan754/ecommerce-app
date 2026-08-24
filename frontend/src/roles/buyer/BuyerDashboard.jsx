@@ -63,7 +63,7 @@ export default function BuyerDashboard({
               <ShoppingBag className="w-6 h-6" />
             </div>
             <span className="text-2xl font-extrabold tracking-tight">
-              Shopee<span className="font-light text-orange-200">Modern</span>
+              Sopi'i<span className="font-light text-orange-200"></span>
             </span>
           </div>
 
