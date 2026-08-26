@@ -47,6 +47,11 @@ export default function BuyerDashboard({
   const secondaryProducts = filteredProducts.slice(1, 3);
   const gridProducts = filteredProducts.slice(3);
 
+  // Handler Hapus Item Dari Keranjang
+  const handleRemoveCartItem = (index) => {
+    setCartItems(cartItems.filter((_, i) => i !== index));
+  };
+
   if (currentView === 'checkout') {
     return (
       <CheckoutPage 
@@ -260,12 +265,13 @@ export default function BuyerDashboard({
         />
       )}
 
-      <CartModal 
+      {/* MODAL KERANJANG */}
+      <CartModal
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
         cartItems={cartItems}
-        setCartItems={setCartItems}
-        onGoToCheckout={() => setCurrentView('checkout')}
+        onRemoveItem={handleRemoveCartItem}
+        onCheckout={() => setCurrentView('checkout')}
       />
 
       <ChatBox
@@ -283,7 +289,6 @@ export default function BuyerDashboard({
 function VercelProductModal({ product, lang, onClose, onAddToCart }) {
   const isEn = lang === 'en';
 
-  // Pembacaan variasi dari data yang di-inputkan oleh Seller
   const variants = (product.variants && product.variants.length > 0)
     ? product.variants
     : [{ color: 'Default', image: product.image }];
@@ -317,7 +322,6 @@ function VercelProductModal({ product, lang, onClose, onAddToCart }) {
 
         <div className="grid grid-cols-1 md:grid-cols-2">
           
-          {/* Render Gambar Variasi yang Dipilih */}
           <div className="aspect-square bg-neutral-100 relative overflow-hidden">
             <img 
               src={selectedVariant.image || product.image} 
@@ -338,7 +342,6 @@ function VercelProductModal({ product, lang, onClose, onAddToCart }) {
                 Rp {Number(product.price).toLocaleString('id-ID')}
               </div>
 
-              {/* Selector Ukuran */}
               {availableSizes ? (
                 <div>
                   <label className="text-xs font-bold uppercase tracking-wider text-neutral-400 block mb-2">
@@ -367,7 +370,6 @@ function VercelProductModal({ product, lang, onClose, onAddToCart }) {
                 </div>
               )}
 
-              {/* Selector Variasi Warna dari Seller */}
               <div>
                 <label className="text-xs font-bold uppercase tracking-wider text-neutral-400 block mb-2">
                   {isEn ? 'Color' : 'Warna'}: <span className="text-black font-extrabold">{selectedVariant.color}</span>
@@ -399,7 +401,7 @@ function VercelProductModal({ product, lang, onClose, onAddToCart }) {
                 selectedColor: selectedVariant.color, 
                 image: selectedVariant.image || product.image 
               })}
-              className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider rounded-full shadow-lg transition cursor-pointer"
+              className="w-full py-4 bg-black hover:bg-neutral-800 text-white font-bold text-xs uppercase tracking-wider rounded-full shadow-lg transition cursor-pointer"
             >
               {isEn ? 'Add To Cart' : 'Tambah Ke Keranjang'}
             </button>

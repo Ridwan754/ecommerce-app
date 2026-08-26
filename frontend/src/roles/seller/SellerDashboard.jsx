@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Package, Store, User, Globe, Image, PlusCircle } from 'lucide-react';
+import { Plus, Trash2, Package, User, Globe, PlusCircle } from 'lucide-react';
 import LogoutButton from '../../components/LogoutButton';
 import { useLanguage } from '../../context/useLanguage';
 import { useAuth } from '../../context/AuthContext';
@@ -65,14 +65,15 @@ export default function SellerDashboard({ products = [], setProducts = () => {} 
     setProducts(products.filter(p => p.id !== id));
   };
 
+  // Filter produk milik seller aktif
   const sellerProducts = products.filter(
-    p => p.sellerName === user?.name || p.sellerName === 'Toko Saya' || true
+    p => p.sellerName === user?.name || p.sellerName === 'Toko Saya'
   );
 
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900 font-sans antialiased -m-6 pb-20">
       
-      {/* VERCEL STYLE HEADER */}
+      {/* VERCEL STYLE LIGHT HEADER */}
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-neutral-200">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
           <div className="flex items-center gap-4">
@@ -133,7 +134,7 @@ export default function SellerDashboard({ products = [], setProducts = () => {} 
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-black transition"
+                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-black transition text-black"
                 placeholder="Contoh: Sepatu Nike Running"
               />
             </div>
@@ -147,7 +148,7 @@ export default function SellerDashboard({ products = [], setProducts = () => {} 
                 required
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-black transition"
+                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-black transition text-black"
                 placeholder="250000"
               />
             </div>
@@ -159,7 +160,7 @@ export default function SellerDashboard({ products = [], setProducts = () => {} 
               <select 
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-black transition font-bold cursor-pointer"
+                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-black transition font-bold cursor-pointer text-black"
               >
                 <option value="sepatu">{isEn ? 'Shoes' : 'Sepatu'}</option>
                 <option value="pakaian">{isEn ? 'Apparel' : 'Pakaian'}</option>
@@ -177,7 +178,7 @@ export default function SellerDashboard({ products = [], setProducts = () => {} 
                 required
                 value={mainImage}
                 onChange={(e) => setMainImage(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-black transition"
+                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-black transition text-black"
                 placeholder="https://images.unsplash.com/..."
               />
             </div>
@@ -203,17 +204,17 @@ export default function SellerDashboard({ products = [], setProducts = () => {} 
                   <div className="flex gap-2 items-center">
                     <input 
                       type="text" 
-                      placeholder="Nama Warna (e.g. Merah)"
+                      placeholder="Warna (e.g. Merah)"
                       value={variant.color}
                       onChange={(e) => handleVariantChange(idx, 'color', e.target.value)}
-                      className="w-1/3 bg-white border border-neutral-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-black"
+                      className="w-1/3 bg-white border border-neutral-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-black text-black"
                     />
                     <input 
                       type="url" 
                       placeholder="URL Gambar Warna Ini"
                       value={variant.image}
                       onChange={(e) => handleVariantChange(idx, 'image', e.target.value)}
-                      className="flex-1 bg-white border border-neutral-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-black"
+                      className="flex-1 bg-white border border-neutral-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-black text-black"
                     />
                     {variants.length > 1 && (
                       <button 

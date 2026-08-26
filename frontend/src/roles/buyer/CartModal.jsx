@@ -1,103 +1,121 @@
-import React from 'react';
-import { X, Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
+import { X, Trash2, ArrowRight, ShoppingBag } from 'lucide-react';
 
 export default function CartModal({ 
   isOpen, 
-  onClose, 
+  onClose = () => {}, 
   cartItems = [], 
-  setCartItems = () => {},
-  onGoToCheckout = () => {} 
+  onRemoveItem = () => {}, 
+  onCheckout = () => {} 
 }) {
   if (!isOpen) return null;
 
-  // Total Subtotal Barang
-  const subtotal = cartItems.reduce((acc, item) => acc + (Number(item.price) || 0), 0);
-
-  // Hapus 1 Produk dari Keranjang
-  const handleRemoveItem = (index) => {
-    const updatedCart = cartItems.filter((_, i) => i !== index);
-    setCartItems(updatedCart);
-  };
-
-  // Handler Pindah ke Halaman Checkout
-  const handleCheckoutClick = () => {
-    onClose(); 
-    onGoToCheckout(); 
-  };
+  // Memastikan cartItems berbentuk Array
+  const itemsList = Array.isArray(cartItems) ? cartItems : [];
+  const subtotal = itemsList.reduce((acc, item) => acc + (Number(item.price) || 0), 0);
+  const isCartEmpty = itemsList.length === 0;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex justify-end transition-opacity">
-      <div className="bg-white max-w-md w-full h-full shadow-2xl flex flex-col justify-between p-4">
-        
-        <div>
-          {/* Header Modal */}
-          <div className="flex justify-between items-center border-b pb-3 mb-4">
-            <h3 className="font-extrabold text-[#ee4d2d] text-base flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5" /> Keranjang Belanja ({cartItems.length})
-            </h3>
+    <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity" 
+        onClick={onClose} 
+      />
+
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+        <div className="w-screen max-w-md bg-white text-black border-l border-neutral-200 shadow-2xl flex flex-col justify-between">
+          
+          {/* Header Vercel Light Style */}
+          <div className="p-6 border-b border-neutral-200 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <ShoppingBag className="w-5 h-5 text-black" />
+              <h2 className="text-xs font-bold uppercase tracking-widest text-black">
+                MY CART ({itemsList.length})
+              </h2>
+            </div>
             <button 
-              onClick={onClose} 
-              className="p-1 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-100"
+              onClick={onClose}
+              className="text-neutral-400 hover:text-black p-1 rounded-md transition border border-neutral-200 hover:border-black cursor-pointer"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
 
-          {/* List Item Keranjang */}
-          {cartItems.length === 0 ? (
-            <div className="text-center py-12 text-slate-400">
-              <ShoppingBag className="w-12 h-12 mx-auto mb-2 opacity-30" />
-              <p className="text-xs font-bold">Keranjang Anda masih kosong</p>
-              <p className="text-[10px] mt-1">Yuk, pilih produk favoritmu sekarang!</p>
-            </div>
-          ) : (
-            <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
-              {cartItems.map((item, index) => (
-                <div key={index} className="flex items-center gap-3 border p-2.5 rounded-sm bg-slate-50 relative group">
-                  <img 
-                    src={item.image || 'https://via.placeholder.com/80'} 
-                    alt={item.name} 
-                    className="w-14 h-14 object-cover rounded-sm border shrink-0" 
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-xs text-slate-800 truncate">{item.name}</p>
-                    <p className="text-xs font-black text-[#ee4d2d] mt-1">
-                      Rp {Number(item.price).toLocaleString('id-ID')}
-                    </p>
+          {/* List Produk Keranjang */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-4 divide-y divide-neutral-100">
+            {!isCartEmpty ? (
+              itemsList.map((item, index) => (
+                <div 
+                  key={index} 
+                  className="pt-4 first:pt-0 flex items-center justify-between gap-4"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-neutral-100 border border-neutral-200 rounded-xl overflow-hidden shrink-0 flex items-center justify-center">
+                      <img 
+                        src={item.image || 'https://via.placeholder.com/100'} 
+                        alt={item.name} 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-black line-clamp-1">{item.name}</h4>
+                      <p className="text-[11px] text-neutral-400 mt-0.5">Qty: 1</p>
+                      <p className="text-xs font-black text-black mt-1">
+                        Rp {Number(item.price).toLocaleString('id-ID')}
+                      </p>
+                    </div>
                   </div>
+
                   <button 
-                    onClick={() => handleRemoveItem(index)} 
-                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-sm transition"
-                    title="Hapus item"
+                    onClick={() => onRemoveItem(index)}
+                    className="text-neutral-400 hover:text-red-600 p-2 transition cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              ))
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-center text-xs text-neutral-400 space-y-3">
+                <ShoppingBag className="w-10 h-10 text-neutral-300 stroke-[1.2]" />
+                <p className="uppercase tracking-widest text-[11px]">Your cart is empty</p>
+              </div>
+            )}
+          </div>
 
-        {/* Footer & Ringkasan Checkout */}
-        {cartItems.length > 0 && (
-          <div className="border-t pt-4 space-y-3 bg-white">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-slate-500">Subtotal Produk</span>
-              <span className="font-black text-[#ee4d2d] text-base">
-                Rp {subtotal.toLocaleString('id-ID')}
-              </span>
+          {/* Footer Subtotal & Action Button */}
+          <div className="p-6 border-t border-neutral-200 space-y-4 bg-white">
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between text-neutral-400">
+                <span>Taxes</span>
+                <span>Calculated at checkout</span>
+              </div>
+              <div className="flex justify-between text-neutral-400">
+                <span>Shipping</span>
+                <span>Calculated at checkout</span>
+              </div>
+              <div className="flex justify-between items-center text-sm font-bold text-black pt-2 border-t border-neutral-100">
+                <span>Total</span>
+                <span className="text-base font-black">
+                  Rp {subtotal.toLocaleString('id-ID')}
+                </span>
+              </div>
             </div>
-            
-            <button 
-              type="button"
-              onClick={handleCheckoutClick}
-              className="w-full py-3 bg-[#ee4d2d] hover:bg-[#d73211] text-white font-bold text-xs rounded-sm shadow transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+
+            {/* Tombol yang sudah aktif & dapat diklik */}
+            <button
+              disabled={isCartEmpty}
+              onClick={() => {
+                onClose(); // Tutup modal keranjang
+                if (onCheckout) onCheckout(); // Eksekusi pindah ke halaman checkout
+              }}
+              className="w-full py-4 bg-black hover:bg-neutral-800 disabled:bg-neutral-200 disabled:text-neutral-400 text-white font-bold text-xs uppercase tracking-widest rounded-full transition flex items-center justify-center gap-2 cursor-pointer shadow-md"
             >
-              Lanjut ke Checkout <ArrowRight className="w-4 h-4" />
+              <span>Proceed to Checkout</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
-        )}
 
+        </div>
       </div>
     </div>
   );
