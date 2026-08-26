@@ -60,6 +60,7 @@ export default function LoginPage() {
           role: selectedRole,
         });
       } catch (err) {
+        console.error('Google login error:', err);
         login({
           email: 'user.google@gmail.com',
           name: 'Google User',

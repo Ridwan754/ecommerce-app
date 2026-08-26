@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { 
   MapPin, Truck, Tag, CreditCard, ShoppingBag, 
-  Upload, ShieldCheck, CheckCircle2, ArrowLeft, Clock 
+  Upload, ShieldCheck, CheckCircle2, ArrowLeft, Clock,
+  Edit3, X, Navigation
 } from 'lucide-react';
 
 export default function CheckoutPage({ 
@@ -9,13 +10,19 @@ export default function CheckoutPage({
   onBackToShop = () => {},
   onOrderSuccess = () => {}
 }) {
-  // 1. Data Alamat Pembeli
-  const [address] = useState({
+  // 1. Data Alamat Pembeli dengan Titik Maps (Latitude & Longitude)
+  const [address, setAddress] = useState({
     name: 'Budi Santoso',
     phone: '081234567890',
     fullAddress: 'Jl. Sudirman No. 88, RT 03/RW 05, Menteng, Jakarta Pusat, DKI Jakarta',
-    postalCode: '10310'
+    postalCode: '10310',
+    lat: -6.1944,
+    lng: 106.8229
   });
+
+  // State Modal Ubah Alamat
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [tempAddress, setTempAddress] = useState({ ...address });
 
   // 2. State Opsi Pengiriman Manual (Standard, Express, Same Day)
   const [selectedCourier, setSelectedCourier] = useState('standard');
@@ -39,6 +46,42 @@ export default function CheckoutPage({
   const merchandiseSubtotal = cartItems.reduce((acc, item) => acc + (Number(item.price) || 0), 0);
   const currentShippingCost = courierOptions[selectedCourier].cost;
   const grandTotal = merchandiseSubtotal + Math.max(0, currentShippingCost - shippingDiscount);
+
+  // Handler Buka Modal Edit Alamat
+  const handleOpenEditModal = () => {
+    setTempAddress({ ...address });
+    setIsEditModalOpen(true);
+  };
+
+  // Handler Simpan Alamat Baru
+  const handleSaveAddress = (e) => {
+    e.preventDefault();
+    setAddress({ ...tempAddress });
+    setIsEditModalOpen(false);
+    alert("Alamat pengiriman dan titik lokasi maps berhasil diperbarui!");
+  };
+
+  // Handler Ambil Lokasi Saat Ini (Geolocation Browser)
+  const handleGetCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setTempAddress(prev => ({
+            ...prev,
+            lat: Number(position.coords.latitude.toFixed(6)),
+            lng: Number(position.coords.longitude.toFixed(6))
+          }));
+          alert("Berhasil mendapatkan koordinat lokasi Anda saat ini!");
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          alert("Gagal mengambil lokasi GPS. Pastikan izin lokasi/GPS aktif.");
+        }
+      );
+    } else {
+      alert("Browser Anda tidak mendukung Geolocation.");
+    }
+  };
 
   // Handler Klaim Voucher Gratis Ongkir
   const handleApplyVoucher = () => {
@@ -77,7 +120,7 @@ export default function CheckoutPage({
   return (
     <div className="min-h-screen bg-[#f5f5f5] font-sans pb-16">
       
-      {/* HEADER CHECKOUT SHOPEE */}
+      {/* HEADER CHECKOUT */}
       <header className="bg-white border-b border-orange-100 sticky top-0 z-30 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 py-3.5 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -89,21 +132,51 @@ export default function CheckoutPage({
               <h1 className="text-xl font-black text-[#ee4d2d]">Checkout</h1>
             </div>
           </div>
-          <span className="text-xs text-slate-400 font-medium">Transaksi Aman & Terenkripsi</span>
+          <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-semibold">
+            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            <span>Transaksi Aman & Terenkripsi</span>
+          </div>
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-4 mt-6 space-y-4">
 
-        {/* 1. ALAMAT PENGIRIMAN PEMBELI */}
-        <div className="bg-white p-5 rounded-sm border-t-4 border-t-[#ee4d2d] shadow-sm space-y-2">
-          <div className="flex items-center gap-2 text-[#ee4d2d] font-bold text-sm">
-            <MapPin className="w-4 h-4" />
-            <span>Alamat Pengiriman Pembeli</span>
+        {/* 1. ALAMAT PENGIRIMAN PEMBELI + TAMPILAN TITIK MAPS */}
+        <div className="bg-white p-5 rounded-sm border-t-4 border-t-[#ee4d2d] shadow-sm space-y-3">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2 text-[#ee4d2d] font-bold text-sm">
+              <MapPin className="w-4 h-4" />
+              <span>Alamat Pengiriman Pembeli</span>
+            </div>
+            <button 
+              onClick={handleOpenEditModal}
+              className="flex items-center gap-1 text-xs text-[#ee4d2d] font-bold border border-[#ee4d2d] px-2.5 py-1 rounded-sm hover:bg-orange-50 transition"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>Ubah Alamat</span>
+            </button>
           </div>
+
           <div className="text-xs text-slate-700 pl-6 space-y-1">
             <p className="font-extrabold text-slate-900">{address.name} ({address.phone})</p>
-            <p>{address.fullAddress}, {address.postalCode}</p>
+            <p>{address.fullAddress}</p>
+            <p className="text-slate-500">Kode Pos: <span className="font-semibold text-slate-800">{address.postalCode}</span></p>
+            
+            {/* Display Titik Maps */}
+            <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-slate-600">
+                <Navigation className="w-3.5 h-3.5 text-[#ee4d2d]" />
+                <span className="font-medium">Titik Maps: {address.lat}, {address.lng}</span>
+              </div>
+              <a 
+                href={`https://www.google.com/maps?q=${address.lat},${address.lng}`} 
+                target="_blank" 
+                rel="noreferrer"
+                className="text-blue-600 hover:underline font-semibold"
+              >
+                Lihat di Google Maps &rarr;
+              </a>
+            </div>
           </div>
         </div>
 
@@ -126,7 +199,7 @@ export default function CheckoutPage({
           </div>
         </div>
 
-        {/* 3. JASA PENGIRIMAN MANUAL (ESTIMASI WAKTU & TIBA) */}
+        {/* 3. JASA PENGIRIMAN MANUAL */}
         <div className="bg-white p-5 rounded-sm shadow-sm space-y-3">
           <div className="flex items-center gap-2 text-[#ee4d2d] font-bold text-sm">
             <Truck className="w-4 h-4" />
@@ -183,7 +256,7 @@ export default function CheckoutPage({
           </div>
         </div>
 
-        {/* 5. METODE PEMBAYARAN (MANUAL & PAYMENT GATEWAY) */}
+        {/* 5. METODE PEMBAYARAN */}
         <div className="bg-white p-5 rounded-sm shadow-sm space-y-4">
           <div className="flex items-center gap-2 text-[#ee4d2d] font-bold text-sm border-b pb-3">
             <CreditCard className="w-4 h-4" />
@@ -239,16 +312,29 @@ export default function CheckoutPage({
               </div>
             </label>
 
-            {/* AREA UPLOAD BUKTI TRANSFER UNTUK PEMBAYARAN MANUAL */}
+            {/* AREA UPLOAD BUKTI TRANSFER */}
             {paymentType === 'transfer_manual' && (
-              <div className="ml-7 p-4 bg-orange-50/50 border border-dashed border-orange-200 rounded-sm space-y-2">
+              <div className="ml-7 p-4 bg-orange-50/50 border border-dashed border-orange-200 rounded-sm space-y-3">
                 <p className="text-xs font-bold text-slate-700">Unggah Bukti Transfer Penjual:</p>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setTransferProof(e.target.files[0])}
-                  className="text-xs text-slate-500"
-                />
+                
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                  <label className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold cursor-pointer transition shadow-sm">
+                    <Upload className="w-4 h-4" />
+                    <span>Pilih & Upload Bukti</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setTransferProof(e.target.files[0])}
+                      className="hidden"
+                    />
+                  </label>
+                  {transferProof && (
+                    <span className="text-xs text-slate-600 truncate max-w-[200px]">
+                      {transferProof.name}
+                    </span>
+                  )}
+                </div>
+
                 {transferProof && (
                   <p className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5" /> File terunggah: {transferProof.name}
@@ -259,7 +345,7 @@ export default function CheckoutPage({
           </div>
         </div>
 
-        {/* 6. TABEL RINCIAN BIAYA TRANSPARAN */}
+        {/* 6. TABEL RINCIAN BIAYA */}
         <div className="bg-white p-5 rounded-sm shadow-sm space-y-3">
           <h3 className="font-bold text-slate-800 text-sm border-b pb-2">Rincian Tagihan</h3>
 
@@ -296,6 +382,153 @@ export default function CheckoutPage({
         </div>
 
       </main>
+
+      {/* MODAL EDIT ALAMAT & TITIK MAPS */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-md max-w-lg w-full p-6 shadow-xl relative my-8">
+            <div className="flex justify-between items-center border-b pb-3 mb-4">
+              <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-[#ee4d2d]" />
+                <span>Ubah Alamat Pengiriman</span>
+              </h3>
+              <button 
+                onClick={() => setIsEditModalOpen(false)} 
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-md"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAddress} className="space-y-4 text-xs">
+              
+              {/* Nama & Telepon */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Nama Penerima</label>
+                  <input
+                    type="text"
+                    required
+                    value={tempAddress.name}
+                    onChange={(e) => setTempAddress({ ...tempAddress, name: e.target.value })}
+                    className="w-full p-2 border border-slate-300 rounded-sm focus:outline-[#ee4d2d]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">No. Telepon</label>
+                  <input
+                    type="text"
+                    required
+                    value={tempAddress.phone}
+                    onChange={(e) => setTempAddress({ ...tempAddress, phone: e.target.value })}
+                    className="w-full p-2 border border-slate-300 rounded-sm focus:outline-[#ee4d2d]"
+                  />
+                </div>
+              </div>
+
+              {/* Alamat Lengkap */}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Alamat Lengkap</label>
+                <textarea
+                  rows="3"
+                  required
+                  value={tempAddress.fullAddress}
+                  onChange={(e) => setTempAddress({ ...tempAddress, fullAddress: e.target.value })}
+                  placeholder="Jalan, No. Rumah, RT/RW, Kelurahan, Kecamatan, Kota/Kabupaten"
+                  className="w-full p-2 border border-slate-300 rounded-sm focus:outline-[#ee4d2d]"
+                />
+              </div>
+
+              {/* Kode Pos */}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Kode Pos</label>
+                <input
+                  type="text"
+                  required
+                  value={tempAddress.postalCode}
+                  onChange={(e) => setTempAddress({ ...tempAddress, postalCode: e.target.value })}
+                  placeholder="Contoh: 10310"
+                  className="w-full p-2 border border-slate-300 rounded-sm focus:outline-[#ee4d2d]"
+                />
+              </div>
+
+              {/* PENGATURAN TITIK MAPS */}
+              <div className="border-t pt-3 space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="font-bold text-slate-800 flex items-center gap-1.5">
+                    <Navigation className="w-4 h-4 text-[#ee4d2d]" />
+                    <span>Titik Lokasi Maps (Koordinat GPS)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleGetCurrentLocation}
+                    className="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-2 py-1 rounded-sm border"
+                  >
+                    Gunakan Lokasi Saya
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] text-slate-500 mb-0.5">Latitude</label>
+                    <input
+                      type="number"
+                      step="any"
+                      required
+                      value={tempAddress.lat}
+                      onChange={(e) => setTempAddress({ ...tempAddress, lat: parseFloat(e.target.value) || 0 })}
+                      className="w-full p-2 border border-slate-300 rounded-sm focus:outline-[#ee4d2d]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-slate-500 mb-0.5">Longitude</label>
+                    <input
+                      type="number"
+                      step="any"
+                      required
+                      value={tempAddress.lng}
+                      onChange={(e) => setTempAddress({ ...tempAddress, lng: parseFloat(e.target.value) || 0 })}
+                      className="w-full p-2 border border-slate-300 rounded-sm focus:outline-[#ee4d2d]"
+                    />
+                  </div>
+                </div>
+
+                {/* Live Preview Google Maps Embed */}
+                <div className="mt-2 border rounded-sm overflow-hidden h-40 bg-slate-100">
+                  <iframe
+                    title="Alamat Maps Preview"
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    scrolling="no"
+                    marginHeight="0"
+                    marginWidth="0"
+                    src={`https://maps.google.com/maps?q=${tempAddress.lat},${tempAddress.lng}&z=15&output=embed`}
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-2 border-t pt-4 mt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-sm font-semibold hover:bg-slate-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[#ee4d2d] text-white rounded-sm font-bold hover:bg-[#d73211]"
+                >
+                  Simpan Alamat
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );
