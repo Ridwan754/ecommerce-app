@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Upload } from 'lucide-react';
 
 export default function RegisterSellerModal({ isOpen, onClose, onSubmitSuccess }) {

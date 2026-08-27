@@ -1,4 +1,3 @@
-import React from 'react';
 import { ShoppingBag, Shirt, Smartphone, Watch, Grid } from 'lucide-react';
 
 export default function CategoryFilter({ activeCategory, onSelectCategory }) {

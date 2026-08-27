@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { MessageSquare, Store, ShoppingCart } from 'lucide-react';
 import ChatBox from './ChatBox';
 

@@ -3,6 +3,7 @@ import { Plus, Trash2, Package, User, Globe, PlusCircle } from 'lucide-react';
 import LogoutButton from '../../components/LogoutButton';
 import { useLanguage } from '../../context/useLanguage';
 import { useAuth } from '../../context/AuthContext';
+import SellerAnalytics from './SellerAnalytics';
 
 export default function SellerDashboard({ products = [], setProducts = () => {} }) {
   const { lang, setLang } = useLanguage();
@@ -51,7 +52,11 @@ export default function SellerDashboard({ products = [], setProducts = () => {} 
       variants: variants.filter(v => v.color.trim() !== '')
     };
 
-    setProducts([newProduct, ...products]);
+    const updatedProducts = [newProduct, ...products];
+    setProducts(updatedProducts);
+
+    // SIMPAN KE LOCALSTORAGE (Supaya Tab Chrome Admin Langsung Membaca & Memindai)
+    localStorage.setItem('app_products', JSON.stringify(updatedProducts));
 
     // Reset Form
     setName('');
@@ -62,7 +67,9 @@ export default function SellerDashboard({ products = [], setProducts = () => {} 
   };
 
   const handleDeleteProduct = (id) => {
-    setProducts(products.filter(p => p.id !== id));
+    const updatedProducts = products.filter(p => p.id !== id);
+    setProducts(updatedProducts);
+    localStorage.setItem('app_products', JSON.stringify(updatedProducts));
   };
 
   // Filter produk milik seller aktif
@@ -115,169 +122,177 @@ export default function SellerDashboard({ products = [], setProducts = () => {} 
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <main className="max-w-7xl mx-auto px-6 mt-8 space-y-8">
         
-        {/* FORM TAMBAH PRODUK DENGAN VARIASI WARNA & GAMBAR */}
-        <section className="lg:col-span-1 bg-white rounded-2xl p-6 border border-neutral-200 shadow-xs h-fit space-y-6">
-          <h2 className="text-base font-bold text-neutral-900 flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            {isEn ? 'Add New Product' : 'Tambah Produk Baru'}
-          </h2>
+        {/* STATISTIK & ANALYTICS SELLER */}
+        <SellerAnalytics products={sellerProducts} />
 
-          <form onSubmit={handleAddProduct} className="space-y-4">
-            <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 block mb-1">
-                {isEn ? 'Product Name' : 'Nama Produk'} *
-              </label>
-              <input 
-                type="text" 
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-black transition text-black"
-                placeholder="Contoh: Sepatu Nike Running"
-              />
-            </div>
+        {/* GRID FORM TAMBAH PRODUK & DAFTAR PRODUK */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* FORM TAMBAH PRODUK */}
+          <section className="lg:col-span-1 bg-white rounded-2xl p-6 border border-neutral-200 shadow-xs h-fit space-y-6">
+            <h2 className="text-base font-bold text-neutral-900 flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              {isEn ? 'Add New Product' : 'Tambah Produk Baru'}
+            </h2>
 
-            <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 block mb-1">
-                {isEn ? 'Price (Rp)' : 'Harga (Rp)'} *
-              </label>
-              <input 
-                type="number" 
-                required
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-black transition text-black"
-                placeholder="250000"
-              />
-            </div>
-
-            <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 block mb-1">
-                {isEn ? 'Category' : 'Kategori'}
-              </label>
-              <select 
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-black transition font-bold cursor-pointer text-black"
-              >
-                <option value="sepatu">{isEn ? 'Shoes' : 'Sepatu'}</option>
-                <option value="pakaian">{isEn ? 'Apparel' : 'Pakaian'}</option>
-                <option value="gadget">Gadget</option>
-                <option value="aksesoris">{isEn ? 'Accessories' : 'Aksesoris'}</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 block mb-1">
-                {isEn ? 'Main Image URL' : 'URL Gambar Utama'} *
-              </label>
-              <input 
-                type="url" 
-                required
-                value={mainImage}
-                onChange={(e) => setMainImage(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-black transition text-black"
-                placeholder="https://images.unsplash.com/..."
-              />
-            </div>
-
-            {/* VARIASI WARNA DAN GAMBAR */}
-            <div className="pt-2 border-t border-neutral-100 space-y-3">
-              <div className="flex justify-between items-center">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-800">
-                  {isEn ? 'Color & Image Variants' : 'Variasi Warna & Gambar'}
+            <form onSubmit={handleAddProduct} className="space-y-4">
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 block mb-1">
+                  {isEn ? 'Product Name' : 'Nama Produk'} *
                 </label>
-                <button
-                  type="button"
-                  onClick={handleAddVariantRow}
-                  className="text-[11px] font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer"
-                >
-                  <PlusCircle className="w-3.5 h-3.5" />
-                  {isEn ? 'Add Variant' : 'Tambah Variasi'}
-                </button>
+                <input 
+                  type="text" 
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-black transition text-black"
+                  placeholder="Contoh: Sepatu Nike Running"
+                />
               </div>
 
-              {variants.map((variant, idx) => (
-                <div key={idx} className="bg-neutral-50 p-3 rounded-xl border border-neutral-200/60 space-y-2 relative">
-                  <div className="flex gap-2 items-center">
-                    <input 
-                      type="text" 
-                      placeholder="Warna (e.g. Merah)"
-                      value={variant.color}
-                      onChange={(e) => handleVariantChange(idx, 'color', e.target.value)}
-                      className="w-1/3 bg-white border border-neutral-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-black text-black"
-                    />
-                    <input 
-                      type="url" 
-                      placeholder="URL Gambar Warna Ini"
-                      value={variant.image}
-                      onChange={(e) => handleVariantChange(idx, 'image', e.target.value)}
-                      className="flex-1 bg-white border border-neutral-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-black text-black"
-                    />
-                    {variants.length > 1 && (
-                      <button 
-                        type="button" 
-                        onClick={() => handleRemoveVariantRow(idx)}
-                        className="text-neutral-400 hover:text-red-600 p-1 cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 block mb-1">
+                  {isEn ? 'Price (Rp)' : 'Harga (Rp)'} *
+                </label>
+                <input 
+                  type="number" 
+                  required
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-black transition text-black"
+                  placeholder="250000"
+                />
+              </div>
 
-            <button
-              type="submit"
-              className="w-full py-3 bg-black hover:bg-neutral-800 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition shadow-xs cursor-pointer mt-4"
-            >
-              {isEn ? 'Save Product' : 'Simpan Produk'}
-            </button>
-          </form>
-        </section>
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 block mb-1">
+                  {isEn ? 'Category' : 'Kategori'}
+                </label>
+                <select 
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-black transition font-bold cursor-pointer text-black"
+                >
+                  <option value="sepatu">{isEn ? 'Shoes' : 'Sepatu'}</option>
+                  <option value="pakaian">{isEn ? 'Apparel' : 'Pakaian'}</option>
+                  <option value="gadget">Gadget</option>
+                  <option value="aksesoris">{isEn ? 'Accessories' : 'Aksesoris'}</option>
+                </select>
+              </div>
 
-        {/* DAFTAR PRODUK SELLER */}
-        <section className="lg:col-span-2 bg-white rounded-2xl border border-neutral-200 overflow-hidden shadow-xs h-fit">
-          <div className="p-5 border-b border-neutral-100 flex items-center justify-between">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-500 flex items-center gap-2">
-              <Package className="w-4 h-4 text-neutral-800" />
-              {isEn ? 'Your Products' : 'Daftar Produk Toko'} ({sellerProducts.length})
-            </h2>
-          </div>
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 block mb-1">
+                  {isEn ? 'Main Image URL' : 'URL Gambar Utama'} *
+                </label>
+                <input 
+                  type="url" 
+                  required
+                  value={mainImage}
+                  onChange={(e) => setMainImage(e.target.value)}
+                  className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-black transition text-black"
+                  placeholder="https://images.unsplash.com/..."
+                />
+              </div>
 
-          <div className="divide-y divide-neutral-100">
-            {sellerProducts.length > 0 ? (
-              sellerProducts.map((p) => (
-                <div key={p.id} className="p-4 flex items-center justify-between gap-4 hover:bg-neutral-50/50 transition">
-                  <div className="flex items-center gap-3">
-                    <img src={p.image} alt={p.name} className="w-12 h-12 object-cover rounded-xl border border-neutral-200 bg-neutral-100 shrink-0" />
-                    <div>
-                      <h3 className="text-xs font-bold text-neutral-900">{p.name}</h3>
-                      <p className="text-[11px] font-bold text-blue-600">Rp {Number(p.price).toLocaleString('id-ID')}</p>
-                      <p className="text-[10px] text-neutral-400 mt-0.5">
-                        {p.variants?.length || 0} {isEn ? 'Variants' : 'Variasi Warna'}
-                      </p>
-                    </div>
-                  </div>
-
+              {/* VARIASI WARNA DAN GAMBAR */}
+              <div className="pt-2 border-t border-neutral-100 space-y-3">
+                <div className="flex justify-between items-center">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-800">
+                    {isEn ? 'Color & Image Variants' : 'Variasi Warna & Gambar'}
+                  </label>
                   <button
-                    onClick={() => handleDeleteProduct(p.id)}
-                    className="p-2 text-neutral-400 hover:text-red-600 hover:bg-neutral-100 rounded-lg transition cursor-pointer"
+                    type="button"
+                    onClick={handleAddVariantRow}
+                    className="text-[11px] font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    {isEn ? 'Add Variant' : 'Tambah Variasi'}
                   </button>
                 </div>
-              ))
-            ) : (
-              <div className="p-8 text-center text-xs text-neutral-400 italic">
-                {isEn ? 'No products added yet.' : 'Belum ada produk yang ditambahkan.'}
+
+                {variants.map((variant, idx) => (
+                  <div key={idx} className="bg-neutral-50 p-3 rounded-xl border border-neutral-200/60 space-y-2 relative">
+                    <div className="flex gap-2 items-center">
+                      <input 
+                        type="text" 
+                        placeholder="Warna (e.g. Merah)"
+                        value={variant.color}
+                        onChange={(e) => handleVariantChange(idx, 'color', e.target.value)}
+                        className="w-1/3 bg-white border border-neutral-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-black text-black"
+                      />
+                      <input 
+                        type="url" 
+                        placeholder="URL Gambar Warna Ini"
+                        value={variant.image}
+                        onChange={(e) => handleVariantChange(idx, 'image', e.target.value)}
+                        className="flex-1 bg-white border border-neutral-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-black text-black"
+                      />
+                      {variants.length > 1 && (
+                        <button 
+                          type="button" 
+                          onClick={() => handleRemoveVariantRow(idx)}
+                          className="text-neutral-400 hover:text-red-600 p-1 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
-        </section>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-black hover:bg-neutral-800 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition shadow-xs cursor-pointer mt-4"
+              >
+                {isEn ? 'Save Product' : 'Simpan Produk'}
+              </button>
+            </form>
+          </section>
+
+          {/* DAFTAR PRODUK SELLER */}
+          <section className="lg:col-span-2 bg-white rounded-2xl border border-neutral-200 overflow-hidden shadow-xs h-fit">
+            <div className="p-5 border-b border-neutral-100 flex items-center justify-between">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-500 flex items-center gap-2">
+                <Package className="w-4 h-4 text-neutral-800" />
+                {isEn ? 'Your Products' : 'Daftar Produk Toko'} ({sellerProducts.length})
+              </h2>
+            </div>
+
+            <div className="divide-y divide-neutral-100">
+              {sellerProducts.length > 0 ? (
+                sellerProducts.map((p) => (
+                  <div key={p.id} className="p-4 flex items-center justify-between gap-4 hover:bg-neutral-50/50 transition">
+                    <div className="flex items-center gap-3">
+                      <img src={p.image} alt={p.name} className="w-12 h-12 object-cover rounded-xl border border-neutral-200 bg-neutral-100 shrink-0" />
+                      <div>
+                        <h3 className="text-xs font-bold text-neutral-900">{p.name}</h3>
+                        <p className="text-[11px] font-bold text-blue-600">Rp {Number(p.price).toLocaleString('id-ID')}</p>
+                        <p className="text-[10px] text-neutral-400 mt-0.5">
+                          {p.variants?.length || 0} {isEn ? 'Variants' : 'Variasi Warna'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => handleDeleteProduct(p.id)}
+                      className="p-2 text-neutral-400 hover:text-red-600 hover:bg-neutral-100 rounded-lg transition cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="p-8 text-center text-xs text-neutral-400 italic">
+                  {isEn ? 'No products added yet.' : 'Belum ada produk yang ditambahkan.'}
+                </div>
+              )}
+            </div>
+          </section>
+
+        </div>
 
       </main>
 

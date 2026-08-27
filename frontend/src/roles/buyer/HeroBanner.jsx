@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Tag, ChevronRight, TicketCheck, Copy } from 'lucide-react';
 
 export default function HeroBanner() {
